@@ -81,8 +81,10 @@ half3 colorR = UNITY_SAMPLE_TEX2DARRAY(AlbedoAtlas, uvR);
   // 
   //
    id=(int)( splat_control.g*16+0.5);
+ 
    float weightG = getChannelValue(UNITY_SAMPLE_TEX2DARRAY(SpaltWeightTex, float3(IN.tc_Control, id / 4)), id % 4);
-   if (weightG > 0.01) {
+   UNITY_BRANCH
+ 
        float3 uvG = float3(initScale, id);//
        half3 colorG = UNITY_SAMPLE_TEX2DARRAY(AlbedoAtlas, uvG);
 
@@ -93,28 +95,27 @@ half3 colorR = UNITY_SAMPLE_TEX2DARRAY(AlbedoAtlas, uvR);
 
        float weightB = getChannelValue(UNITY_SAMPLE_TEX2DARRAY(SpaltWeightTex, float3(IN.tc_Control, id / 4)), id % 4);
 
-       // 
-       mixedDiffuse.rgb = colorR * (1 - weightG - weightB) + colorG * weightG + colorB * weightB;
+       id = (int)(splat_control.a * 16 + 0.5);
+       float3 uvA = float3(initScale, id);//
+       half3 colorA = UNITY_SAMPLE_TEX2DARRAY(AlbedoAtlas, uvA);
 
-       mixedDiffuse.a = 1;
+       float weightA = getChannelValue(UNITY_SAMPLE_TEX2DARRAY(SpaltWeightTex, float3(IN.tc_Control, id / 4)), id % 4);
+
+       // 
+       mixedDiffuse.rgb = colorR * (1 - weightG - weightB - weightA) + colorG * weightG + colorB * weightB +colorA * weightA;
+
+       mixedDiffuse.a = 0;
 
 
        //法线少采样一张 一般也够表达效果 因为 3种半透明区域 法线已经减弱了
 
        fixed4 nrm = 0.0f;
-       nrm += saturate(1 - weightG) * UNITY_SAMPLE_TEX2DARRAY(NormalAtlas, uvR);
+       nrm += saturate(1  -weightG - weightB - weightA) * UNITY_SAMPLE_TEX2DARRAY(NormalAtlas, uvR);
        nrm += weightG * UNITY_SAMPLE_TEX2DARRAY(NormalAtlas, uvG);
-
+       nrm += weightB * UNITY_SAMPLE_TEX2DARRAY(NormalAtlas, uvB);
+       splat_control = 0;
        mixedNormal = UnpackNormal(nrm);
-   }
-   else {
-       mixedDiffuse.rgb = colorR ;
-
-       mixedDiffuse.a = 1;
-       mixedNormal = UnpackNormal(UNITY_SAMPLE_TEX2DARRAY(NormalAtlas, uvR));
-   }
-  
-       
+ 
   
 }
 

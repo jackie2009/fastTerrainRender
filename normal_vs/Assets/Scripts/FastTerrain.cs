@@ -14,6 +14,8 @@ public class FastTerrain : MonoBehaviour
 
     //slplat 区分id和Weight 主要是因为 id不能插值 但weight需要插值 如果分辨率精度够大 point 采样够平滑 就不需要分2张
     public Texture2D splatID;
+    [Range(0,5)]
+    public int weightMipmap = 0;
     public Texture2DArray splatWeight;
     public Shader terrainShader;
     public TerrainData normalTerrainData;//{ get { return GetComponent<Terrain>().terrainData; } }
@@ -70,19 +72,19 @@ public class FastTerrain : MonoBehaviour
     // Update is called once per frame
     void MakeSplat()
     {
-      
 
-         
-        int wid = normalTerrainData.alphamapTextures[0].width;
-        int hei = normalTerrainData.alphamapTextures[0].height;
+        int scale = 1 << weightMipmap;
+
+        int wid = normalTerrainData.alphamapTextures[0].width/ scale;
+        int hei = normalTerrainData.alphamapTextures[0].height/ scale;
         List<Color[]> colors = new List<Color[]>();
         //t.terrainData.alphamapTextures[i].GetPixels();
         for (int i = 0; i < normalTerrainData.alphamapTextures.Length; i++)
         {
-            colors.Add(normalTerrainData.alphamapTextures[i].GetPixels());
+            colors.Add(normalTerrainData.alphamapTextures[i].GetPixels(weightMipmap));
         }
 
-        splatID = new Texture2D(wid, hei, TextureFormat.RGB24, false, true);
+        splatID = new Texture2D(wid, hei, TextureFormat.RGBA32, false, true);
 
         splatID.filterMode = FilterMode.Point;
 
@@ -132,6 +134,7 @@ public class FastTerrain : MonoBehaviour
                 splatIDColors[index].r = splatDatas[0].id / 16f; //
                  splatIDColors[index].g = splatDatas[1].id / 16f;
                  splatIDColors[index].b =  splatDatas[2].id / 16f;
+                 splatIDColors[index].a =  splatDatas[3].id / 16f;
   
             }
         }
@@ -140,13 +143,14 @@ public class FastTerrain : MonoBehaviour
         splatID.SetPixels(splatIDColors);
         splatID.Apply();
 
-        
+       
         splatWeight = new Texture2DArray(wid, hei, normalTerrainData.alphamapTextures.Length, normalTerrainData.alphamapTextures[0].format, true, true);
+
         splatWeight.filterMode = FilterMode.Bilinear;
         for (int i = 0; i < normalTerrainData.alphamapTextures.Length; i++)
         {
-            splatWeight.SetPixels(normalTerrainData.alphamapTextures[i].GetPixels(), i);
-
+            splatWeight.SetPixels(normalTerrainData.alphamapTextures[i].GetPixels(weightMipmap), i);
+           
          }
 
         splatWeight.Apply();
